@@ -1,0 +1,4 @@
+OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_MODEL = "qwen2.5-coder:3b"
+GRAPHDB_ENDPOINT = "http://localhost:7200/repositories/geo"
+GEO_NAMESPACE = "http://example.org/geo_ontology_final.owl#"
