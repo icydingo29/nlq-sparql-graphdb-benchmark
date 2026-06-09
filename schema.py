@@ -77,29 +77,14 @@ has_island       subPropertyOf contains;       domain=WaterNaturalLocation; rang
 
 has_border_with  Symmetric; domain=Country; range=Country
 
-has_main_religion    domain=Country; range=Religion;           inverse: is_main_religion_in
-is_main_religion_in  domain=Religion; range=Country;           inverse: has_main_religion
-
-has_form_of_government  domain=Country; range=Form_of_Government; inverse: is_applied_in
-is_applied_in           domain=Form_of_Government; range=Country; inverse: has_form_of_government
-
-has_architecture    domain=Building;   range=Architecture; inverse: is_architecture_of
-is_architecture_of  domain=Architecture; range=Building;  inverse: has_architecture
-
-has_head_of_state   domain=Country;        range=Person;         inverse: is_head_of_state
-is_head_of_state    domain=Person;         range=Country;        inverse: has_head_of_state
-
-has_mayor           domain=PopulatedPlace; range=Person;         inverse: is_mayor_of
-is_mayor_of         domain=Person;         range=PopulatedPlace; inverse: has_mayor
-
-has_head_of_temple  domain=Temple; range=Person;  inverse: is_head_of_temple
-is_head_of_temple   domain=Person; range=Temple;  inverse: has_head_of_temple
-
-has_created   domain=Person;    range=Country;   inverse: is_created_by
-is_created_by domain=Country;   range=Person;    inverse: has_created
-
-has_found     domain=Person;    range=Continent; inverse: is_found_by
-is_found_by   domain=Continent; range=Person;    inverse: has_found
+has_main_religion      domain=Country;        range=Religion
+has_form_of_government domain=Country;        range=Form_of_Government
+has_architecture       domain=Building;       range=Architecture
+has_head_of_state      domain=Country;        range=Person
+has_mayor              domain=PopulatedPlace; range=Person
+has_head_of_temple     domain=Temple;         range=Person
+has_created            domain=Person;         range=Country
+has_found              domain=Person;         range=Continent
 
 === DATATYPE PROPERTIES ===
 population        Functional; domain=Country|Continent|PopulatedPlace; range=xsd:integer
