@@ -13,10 +13,13 @@ _THIN = "─" * 45
 _MAX_RETRIES = 2
 
 _CAT_LABELS = {
-    1: "Direct",
+    1: "Direct Retrieval",
     2: "Transitivity",
-    3: "Defined class",
-    4: "Reasoning",
+    3: "Numeric Filter",
+    4: "Defined Class",
+    5: "Aggregation",
+    6: "Compositional",
+    7: "Reasoning Required",
 }
 
 
@@ -117,7 +120,7 @@ def run_test(q: dict, brief_on_exact: bool = False) -> tuple:
         print(raw)
         print("\nNo SPARQL query could be extracted.")
         print(f"\nReference SPARQL:\n{q['reference_sparql']}")
-        print(f"\nReference Results:\n{_fmt_set(q['expected_results'])}")
+        print(f"\nReference Results:\n{_fmt_set(_reference_vals(q))}")
         print(f"\nMatch: EXTRACTION FAILED")
         print(_DIVIDER)
         return "EXTRACTION FAILED", False
@@ -240,10 +243,47 @@ def run_benchmark():
     print(f"  {'Syntax retries:'.ljust(32)} {total_retries}")
 
     print(f"\nPer-question exact rate:")
-    for qi, q in enumerate(qbank.QUESTIONS):
-        pct = exact_counts[qi] / n * 100
-        bar = "█" * exact_counts[qi] + "░" * (n - exact_counts[qi])
-        print(f"  Q{qi+1:2} [{bar}] {pct:3.0f}%  {q['question'][:45]}")
+    for cat in sorted(_CAT_LABELS):
+        print(f"\n  Category {cat} — {_CAT_LABELS[cat]}:")
+        for qi, q in enumerate(qbank.QUESTIONS):
+            if q["category"] != cat:
+                continue
+            pct = exact_counts[qi] / n * 100
+            bar = "█" * exact_counts[qi] + "░" * (n - exact_counts[qi])
+            print(f"    Q{q['number']:2} [{bar}] {pct:3.0f}%  {q['question'][:45]}")
+
+
+# ── run by category ──────────────────────────────────────────────────────────
+
+def run_by_category():
+    print("\nCategories:")
+    for cat in sorted(_CAT_LABELS):
+        count = sum(1 for q in qbank.QUESTIONS if q["category"] == cat)
+        print(f"  {cat}. {_CAT_LABELS[cat]} ({count} questions)")
+    try:
+        cat = int(input("Category number: ").strip())
+    except ValueError:
+        print("Invalid input.")
+        return
+    subset = [q for q in qbank.QUESTIONS if q["category"] == cat]
+    if not subset:
+        print(f"No questions in category {cat}.")
+        return
+
+    cat_scores = defaultdict(lambda: [0, 0])
+    total_exact = 0
+    syntax_retries = 0
+
+    for q in subset:
+        label, had_retry = run_test(q)
+        cat_scores[cat][1] += 1
+        if label == "EXACT":
+            cat_scores[cat][0] += 1
+            total_exact += 1
+        if had_retry:
+            syntax_retries += 1
+
+    _print_summary(cat_scores, total_exact, syntax_retries)
 
 
 # ── free-form ─────────────────────────────────────────────────────────────────
@@ -277,11 +317,12 @@ def run_freeform():
 def print_menu():
     print("\nGeographic Ontology NLQ Tester")
     print("=" * 34)
-    for i, q in enumerate(qbank.QUESTIONS, 1):
-        print(f"  {i:2}. [Cat {q['category']}] {q['question']}")
+    for q in qbank.QUESTIONS:
+        print(f"  {q['number']:2}. [Cat {q['category']}] {q['question']}")
     print(f"   A.  Run all (full output)")
     print(f"   S.  Run all (failures only)")
     print(f"   B.  Benchmark (N runs, averages)")
+    print(f"   C.  Run by category")
     print(f"   F.  Free-form question")
     print(f"   Q.  Quit")
     print()
@@ -304,6 +345,8 @@ def main():
             run_failures_only()
         elif choice == "B":
             run_benchmark()
+        elif choice == "C":
+            run_by_category()
         elif choice == "F":
             run_freeform()
         else:

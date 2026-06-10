@@ -1,7 +1,7 @@
 import schema
 
 _FEW_SHOT = [
-    # Example 1 — direct single-property lookup (covers Cat 1 & Cat 3 patterns)
+    # Example 1 — direct single-property lookup (covers Cat 1 & Cat 4 patterns)
     {
         "question": "What is the depth of Lake Baikal?",
         "sparql": (
@@ -22,7 +22,7 @@ _FEW_SHOT = [
             "}"
         ),
     },
-    # Example 3 — FILTER NOT EXISTS negation (covers Cat 4 pattern)
+    # Example 3 — FILTER NOT EXISTS negation (covers Cat 7 pattern)
     {
         "question": "Which buildings are not of Gothic architecture?",
         "sparql": (
@@ -30,6 +30,53 @@ _FEW_SHOT = [
             "SELECT ?building WHERE {\n"
             "  ?building a geo:Building .\n"
             "  FILTER NOT EXISTS { ?building geo:has_architecture geo:Gothic_Architecture }\n"
+            "}"
+        ),
+    },
+    # Example 4 — combined numeric FILTER with && (covers Cat 3 pattern)
+    {
+        "question": "Which lakes have a depth greater than 100 meters and less than 5000 meters?",
+        "sparql": (
+            "PREFIX geo: <http://example.org/geo_ontology_final.owl#>\n"
+            "SELECT ?lake WHERE {\n"
+            "  ?lake a geo:Lake ;\n"
+            "        geo:depth ?d .\n"
+            "  FILTER(?d > 100 && ?d < 5000)\n"
+            "}"
+        ),
+    },
+    # Example 5 — COUNT aggregation (covers Cat 5 pattern)
+    {
+        "question": "How many peaks are there in Asia?",
+        "sparql": (
+            "PREFIX geo: <http://example.org/geo_ontology_final.owl#>\n"
+            "SELECT (COUNT(?peak) AS ?count) WHERE {\n"
+            "  ?peak a geo:Peak ;\n"
+            "        geo:is_located_in geo:Asia .\n"
+            "}"
+        ),
+    },
+    # Example 6 — UNION (covers Cat 6 pattern)
+    {
+        "question": "Which natural locations are either rivers or lakes?",
+        "sparql": (
+            "PREFIX geo: <http://example.org/geo_ontology_final.owl#>\n"
+            "SELECT ?place WHERE {\n"
+            "  { ?place a geo:River }\n"
+            "  UNION\n"
+            "  { ?place a geo:Lake }\n"
+            "}"
+        ),
+    },
+    # Example 7 — OPTIONAL for partial data (covers Cat 6 pattern)
+    {
+        "question": "Which mountains are in Asia and what is their height if known?",
+        "sparql": (
+            "PREFIX geo: <http://example.org/geo_ontology_final.owl#>\n"
+            "SELECT ?mountain ?height WHERE {\n"
+            "  ?mountain a geo:Mountain ;\n"
+            "            geo:is_located_in geo:Asia .\n"
+            "  OPTIONAL { ?mountain geo:height ?height }\n"
             "}"
         ),
     },

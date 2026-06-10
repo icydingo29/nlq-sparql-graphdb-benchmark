@@ -46,8 +46,6 @@ owl:Thing
 │               └── TropicalIsland ≡ Island ∩ is_island_in some Ocean ∩ temperature ≥ 25
 ├── Continent
 ├── Country
-│   ├── EuropeanCountry     ≡ Country ∩ is_located_in some Europe
-│   ├── AsianCountry        ≡ Country ∩ is_located_in some Asia
 │   ├── AbsMonarchyState    ≡ Country ∩ has_form_of_government some Absolute_Monarchy
 │   ├── RepublicState       ≡ Country ∩ has_form_of_government some (Parliamentary_Republic ∪ Federal_Republic)
 │   ├── OrthodoxChristianCountry ≡ Country ∩ has_main_religion some Eastern_Orthodoxy
@@ -174,7 +172,16 @@ Village:  Zheravna (SmallVillage, population=400)
 3. For "which X are in Continent?" write:
      ?x a geo:X ; geo:is_located_in geo:Continent .
    GraphDB materialises the transitive closure of is_located_in — no property paths needed.
+   NEVER use geo:EuropeanCountry, geo:AsianCountry, or any other location-derived class — they have no materialised instances. Always use geo:is_located_in.
 4. For defined classes (Megacity, CapitalCity, RepublicState, etc.) use: ?x a geo:ClassName .
 5. For absence: FILTER NOT EXISTS { ?x geo:property ?y }
 6. Individual names are case-sensitive and use underscores: North_America, Islam_Sunni.
+   Continent names must be spelled in full: North_America, South_America, Australia_Continent (never N_America, S.America, S_America).
+7. For numeric comparisons: FILTER(?property > value) or FILTER(?property < value).
+   Combine multiple conditions with &&: FILTER(?a > v1 && ?b < v2).
+8. For aggregation: SELECT (COUNT(?x) AS ?count), (MAX(?x) AS ?max), (MIN(?x) AS ?min), (AVG(?x) AS ?avg)
+   Always bind the result with AS ?alias.
+9. For OR between two types: { ?x a geo:TypeA } UNION { ?x a geo:TypeB }
+10. For optional data: OPTIONAL { ?x geo:property ?value } — use when some entities may not have a property.
+    If the question contains "if available", "if defined", "if known", or "if one is defined", you MUST use OPTIONAL.
 """

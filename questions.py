@@ -6,6 +6,7 @@ _PFX = "PREFIX geo: <http://example.org/geo_ontology_final.owl#>\n"
 QUESTIONS = [
     # ─── Category 1 — Direct Retrieval ────────────────────────────────────────
     {
+        "number": 1,
         "question": "What is the form of government of Japan?",
         "category": 1,
         "reference_sparql": _PFX + """\
@@ -14,6 +15,7 @@ SELECT ?gov WHERE {
 }""",
     },
     {
+        "number": 2,
         "question": "What is the population of France?",
         "category": 1,
         "reference_sparql": _PFX + """\
@@ -22,6 +24,7 @@ SELECT ?pop WHERE {
 }""",
     },
     {
+        "number": 3,
         "question": "Who is the head of state of Bulgaria?",
         "category": 1,
         "reference_sparql": _PFX + """\
@@ -29,8 +32,9 @@ SELECT ?person WHERE {
   geo:Bulgaria geo:has_head_of_state ?person .
 }""",
     },
-    # ─── Category 2 — Transitivity and Inversion ──────────────────────────────
+    # ─── Category 2 — Transitivity ────────────────────────────────────────────
     {
+        "number": 4,
         "question": "Which mountains are located in Asia?",
         "category": 2,
         "reference_sparql": _PFX + """\
@@ -40,6 +44,7 @@ SELECT ?mountain WHERE {
 }""",
     },
     {
+        "number": 5,
         "question": "Which peaks are located in Europe?",
         "category": 2,
         "reference_sparql": _PFX + """\
@@ -49,6 +54,7 @@ SELECT ?peak WHERE {
 }""",
     },
     {
+        "number": 6,
         "question": "Which cities are located in South America?",
         "category": 2,
         "reference_sparql": _PFX + """\
@@ -57,38 +63,143 @@ SELECT ?city WHERE {
         geo:is_located_in geo:South_America .
 }""",
     },
-    # ─── Category 3 — Defined Class (instances materialised by reasoner) ──────
+    # ─── Category 3 — Numeric Filter ──────────────────────────────────────────
     {
-        "question": "Which cities are megacities?",
+        "number": 7,
+        "question": "Which peaks are higher than 5000 meters?",
         "category": 3,
+        "reference_sparql": _PFX + """\
+SELECT ?peak WHERE {
+  ?peak a geo:Peak ;
+        geo:height ?h .
+  FILTER(?h > 5000)
+}""",
+    },
+    {
+        "number": 8,
+        "question": "Which cities have a population of more than 1 million?",
+        "category": 3,
+        "reference_sparql": _PFX + """\
+SELECT ?city WHERE {
+  ?city a geo:City ;
+        geo:population ?pop .
+  FILTER(?pop > 1000000)
+}""",
+    },
+    {
+        "number": 9,
+        "question": "Which peaks have a height between 3000 and 8000 meters?",
+        "category": 3,
+        "reference_sparql": _PFX + """\
+SELECT ?peak WHERE {
+  ?peak a geo:Peak ;
+        geo:height ?h .
+  FILTER(?h > 3000 && ?h < 8000)
+}""",
+    },
+    # ─── Category 4 — Defined Class ───────────────────────────────────────────
+    {
+        "number": 10,
+        "question": "Which cities are megacities?",
+        "category": 4,
         "reference_sparql": _PFX + """\
 SELECT ?city WHERE {
   ?city a geo:Megacity .
 }""",
     },
     {
+        "number": 11,
         "question": "Which cities are capital cities?",
-        "category": 3,
+        "category": 4,
         "reference_sparql": _PFX + """\
 SELECT ?city WHERE {
   ?city a geo:CapitalCity .
 }""",
     },
     {
+        "number": 12,
         "question": "Which countries are Sunni Islamic countries?",
-        "category": 3,
+        "category": 4,
         "reference_sparql": _PFX + """\
 SELECT ?country WHERE {
   ?country a geo:Country .
   FILTER EXISTS { ?country geo:has_main_religion geo:Islam_Sunni }
 }""",
     },
-    # ─── Category 4 — Reasoning Required ──────────────────────────────────────
+    # ─── Category 5 — Aggregation ─────────────────────────────────────────────
+    {
+        "number": 13,
+        "question": "How many countries are there in Europe?",
+        "category": 5,
+        "reference_sparql": _PFX + """\
+SELECT (COUNT(?country) AS ?count) WHERE {
+  ?country a geo:Country ;
+           geo:is_located_in geo:Europe .
+}""",
+    },
+    {
+        "number": 14,
+        "question": "What is the maximum height among peaks in Asia?",
+        "category": 5,
+        "reference_sparql": _PFX + """\
+SELECT (MAX(?h) AS ?maxHeight) WHERE {
+  ?peak a geo:Peak ;
+        geo:is_located_in geo:Asia ;
+        geo:height ?h .
+}""",
+    },
+    {
+        "number": 15,
+        "question": "What is the minimum population of a country in Africa?",
+        "category": 5,
+        "reference_sparql": _PFX + """\
+SELECT (MIN(?pop) AS ?minPop) WHERE {
+  ?country a geo:Country ;
+           geo:is_located_in geo:Africa ;
+           geo:population ?pop .
+}""",
+    },
+    {
+        "number": 16,
+        "question": "What is the average population of countries in Europe?",
+        "category": 5,
+        "reference_sparql": _PFX + """\
+SELECT (AVG(?pop) AS ?avgPop) WHERE {
+  ?country a geo:Country ;
+           geo:is_located_in geo:Europe ;
+           geo:population ?pop .
+}""",
+    },
+    # ─── Category 6 — Compositional (UNION, OPTIONAL) ─────────────────────────
+    {
+        "number": 17,
+        "question": "Which places are either mountains or volcanoes?",
+        "category": 6,
+        "reference_sparql": _PFX + """\
+SELECT ?place WHERE {
+  { ?place a geo:Mountain }
+  UNION
+  { ?place a geo:Volcano }
+}""",
+    },
+    {
+        "number": 18,
+        "question": "List all countries in Europe and their main religion if one is defined.",
+        "category": 6,
+        "reference_sparql": _PFX + """\
+SELECT ?country ?religion WHERE {
+  ?country a geo:Country ;
+           geo:is_located_in geo:Europe .
+  OPTIONAL { ?country geo:has_main_religion ?religion }
+}""",
+    },
+    # ─── Category 7 — Reasoning Required ──────────────────────────────────────
     # Sub-case A: LandlockedCountry has no materialised instances due to OWL
     # open-world assumption. Reference uses FILTER NOT EXISTS on raw data.
     {
+        "number": 19,
         "question": "Which countries are landlocked?",
-        "category": 4,
+        "category": 7,
         "reference_sparql": _PFX + """\
 SELECT ?country WHERE {
   ?country a geo:Country .
@@ -101,8 +212,9 @@ SELECT ?country WHERE {
     # Sub-case B: no class exists for "North American countries"; model must
     # identify the is_located_in property and the North_America individual.
     {
+        "number": 20,
         "question": "Which countries are in North America?",
-        "category": 4,
+        "category": 7,
         "reference_sparql": _PFX + """\
 SELECT ?country WHERE {
   ?country a geo:Country ;

@@ -181,3 +181,8 @@ tempCodeRunnerFile.py
 # Project-specific files
 temp/
 .temp
+
+# Claude Code context (local development tool — not part of the project)
+CLAUDE.md
+
+report.md
