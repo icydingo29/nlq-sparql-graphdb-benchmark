@@ -10,11 +10,11 @@ owl:Thing
 ├── Place
 │   ├── PopulatedPlace
 │   │   ├── Village
-│   │   │   └── SmallVillage  ≡ Village ∩ population ≤ 500
+│   │   │   └── SmallVillage  — Village with population ≤ 500
 │   │   └── City              (disjoint with Village)
-│   │       ├── Megacity        ≡ City ∩ population ≥ 10 000 000
-│   │       ├── CapitalCity     ≡ City ∩ is_capital = true
-│   │       └── ModernMetropolis ≡ City ∩ contains some (Building ∩ has_architecture some Modernism_Architecture)
+│   │       ├── Megacity        — City with population ≥ 10 000 000
+│   │       ├── CapitalCity     — City with is_capital = true
+│   │       └── ModernMetropolis — City that contains a Building with has_architecture Modernism_Architecture
 │   ├── Landmark
 │   │   ├── NaturalLandmark
 │   │   └── CulturalLandmark
@@ -25,34 +25,34 @@ owl:Thing
 │   │           │   ├── Mosque
 │   │           │   ├── BuddhistTemple
 │   │           │   └── Church
-│   │           ├── AncientBuilding ≡ Building ∩ construction_date ≤ 1000
-│   │           └── GothicTemple    ≡ Temple ∩ has_architecture some Gothic_Architecture
+│   │           ├── AncientBuilding — Building with construction_date ≤ 1000
+│   │           └── GothicTemple    — Temple with has_architecture Gothic_Architecture
 │   └── NaturalLocation
 │       ├── WaterNaturalLocation
 │       │   ├── River
 │       │   ├── Lake
 │       │   ├── Sea
 │       │   ├── Ocean
-│       │   ├── DeepWater     ≡ WaterNaturalLocation ∩ depth ≥ 5000
-│       │   └── SaltWaterBody ≡ WaterNaturalLocation ∩ is_saltwatered = true
+│       │   ├── DeepWater     — WaterNaturalLocation with depth ≥ 5000
+│       │   └── SaltWaterBody — WaterNaturalLocation with is_saltwatered = true
 │       └── LandNaturalLocation
 │           ├── Mountain
 │           ├── Peak
-│           │   └── HighPeak  ≡ Peak ∩ height ≥ 8000
+│           │   └── HighPeak  — Peak with height ≥ 8000
 │           ├── Volcano
 │           ├── Desert
 │           ├── Forest
 │           └── Island
-│               └── TropicalIsland ≡ Island ∩ is_island_in some Ocean ∩ temperature ≥ 25
+│               └── TropicalIsland — Island in an Ocean with temperature ≥ 25
 ├── Continent
 ├── Country
-│   ├── AbsMonarchyState    ≡ Country ∩ has_form_of_government some Absolute_Monarchy
+│   ├── AbsMonarchyState    — Country with has_form_of_government Absolute_Monarchy
 │   ├── RepublicState       — Country with has_form_of_government Parliamentary_Republic or Federal_Republic
-│   ├── OrthodoxChristianCountry ≡ Country ∩ has_main_religion some Eastern_Orthodoxy
-│   ├── SunniIslamicCountry ≡ Country ∩ has_main_religion some Islam_Sunni
-│   ├── ShiaIslamicCountry  ≡ Country ∩ has_main_religion some Islam_Shia
+│   ├── OrthodoxChristianCountry — Country with has_main_religion Eastern_Orthodoxy
+│   ├── SunniIslamicCountry — Country with has_main_religion Islam_Sunni
+│   ├── ShiaIslamicCountry  — Country with has_main_religion Islam_Shia
 │   ├── LandlockedCountry   — Country that does not contain any Sea or Ocean
-│   └── MountainousCountry  ≡ Country ∩ contains some Mountain
+│   └── MountainousCountry  — Country that contains a Mountain
 ├── Religion
 ├── Form_of_Government
 ├── Architecture
