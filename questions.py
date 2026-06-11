@@ -229,9 +229,9 @@ SELECT ?country WHERE {
            geo:is_located_in geo:North_America .
 }""",
     },
-    # Sub-case C: RepublicState is a defined class but OWL2-RL cannot materialise
-    # it — the restriction uses a union (Parliamentary_Republic ∪ Federal_Republic)
-    # which OWL2-RL's rules do not handle. Model must use FILTER IN or UNION.
+    # Sub-case C: RepublicState IS materialised by OWL2-RL (empirically returns 14
+    # countries). Main failure mode was schema notation bleed (∪ copied into SPARQL).
+    # Reference SPARQL uses FILTER IN to avoid `a geo:RepublicState` ambiguity.
     {
         "number": 22,
         "question": "Which countries are republics?",

@@ -269,7 +269,7 @@ def run_benchmark():
 
     # ── output mode ──────────────────────────────────────────────────────────
     print("Output:  P  progress only (default)")
-    print("         F  show last failing SPARQL per question after stats")
+    print("         F  show all unique failure patterns per question after stats")
     print("         V  one result line per question per run")
     out = input("Output [P/F/V]: ").strip().upper() or "P"
     if out not in ("P", "F", "V"):
