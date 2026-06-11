@@ -193,32 +193,54 @@ SELECT ?country ?religion WHERE {
   OPTIONAL { ?country geo:has_main_religion ?religion }
 }""",
     },
-    # ─── Category 7 — Reasoning Required ──────────────────────────────────────
-    # Sub-case A: LandlockedCountry has no materialised instances due to OWL
-    # open-world assumption. Reference uses FILTER NOT EXISTS on raw data.
     {
         "number": 19,
-        "question": "Which countries are landlocked?",
+        "question": "Which capital cities are not megacities?",
+        "category": 6,
+        "reference_sparql": _PFX + """\
+SELECT ?city WHERE {
+  { ?city a geo:CapitalCity }
+  MINUS
+  { ?city a geo:Megacity }
+}""",
+    },
+    # ─── Category 7 — Reasoning Required ──────────────────────────────────────
+    # Sub-case A: FILTER NOT EXISTS on transitive is_located_in. No class like
+    # "NonEuropeanVolcano" exists; the LLM must use negation on location.
+    {
+        "number": 20,
+        "question": "Which volcanoes are not located in Europe?",
         "category": 7,
         "reference_sparql": _PFX + """\
-SELECT ?country WHERE {
-  ?country a geo:Country .
-  FILTER NOT EXISTS {
-    ?country geo:contains ?water .
-    { ?water a geo:Sea } UNION { ?water a geo:Ocean }
-  }
+SELECT ?volcano WHERE {
+  ?volcano a geo:Volcano .
+  FILTER NOT EXISTS { ?volcano geo:is_located_in geo:Europe }
 }""",
     },
     # Sub-case B: no class exists for "North American countries"; model must
     # identify the is_located_in property and the North_America individual.
     {
-        "number": 20,
+        "number": 21,
         "question": "Which countries are in North America?",
         "category": 7,
         "reference_sparql": _PFX + """\
 SELECT ?country WHERE {
   ?country a geo:Country ;
            geo:is_located_in geo:North_America .
+}""",
+    },
+    # Sub-case C: RepublicState is a defined class but OWL2-RL cannot materialise
+    # it — the restriction uses a union (Parliamentary_Republic ∪ Federal_Republic)
+    # which OWL2-RL's rules do not handle. Model must use FILTER IN or UNION.
+    {
+        "number": 22,
+        "question": "Which countries are republics?",
+        "category": 7,
+        "reference_sparql": _PFX + """\
+SELECT ?country WHERE {
+  ?country a geo:Country ;
+           geo:has_form_of_government ?gov .
+  FILTER(?gov IN (geo:Parliamentary_Republic, geo:Federal_Republic))
 }""",
     },
 ]

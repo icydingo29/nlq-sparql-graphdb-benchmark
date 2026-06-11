@@ -47,11 +47,11 @@ owl:Thing
 ├── Continent
 ├── Country
 │   ├── AbsMonarchyState    ≡ Country ∩ has_form_of_government some Absolute_Monarchy
-│   ├── RepublicState       ≡ Country ∩ has_form_of_government some (Parliamentary_Republic ∪ Federal_Republic)
+│   ├── RepublicState       — Country with has_form_of_government Parliamentary_Republic or Federal_Republic
 │   ├── OrthodoxChristianCountry ≡ Country ∩ has_main_religion some Eastern_Orthodoxy
 │   ├── SunniIslamicCountry ≡ Country ∩ has_main_religion some Islam_Sunni
 │   ├── ShiaIslamicCountry  ≡ Country ∩ has_main_religion some Islam_Shia
-│   ├── LandlockedCountry   ≡ Country ∩ ¬(contains some (Sea ∪ Ocean))
+│   ├── LandlockedCountry   — Country that does not contain any Sea or Ocean
 │   └── MountainousCountry  ≡ Country ∩ contains some Mountain
 ├── Religion
 ├── Form_of_Government
@@ -184,4 +184,6 @@ Village:  Zheravna (SmallVillage, population=400)
 9. For OR between two types: { ?x a geo:TypeA } UNION { ?x a geo:TypeB }
 10. For optional data: OPTIONAL { ?x geo:property ?value } — use when some entities may not have a property.
     If the question contains "if available", "if defined", "if known", or "if one is defined", you MUST use OPTIONAL.
+11. For set difference ("X but not Y"): { Pattern A } MINUS { Pattern B }
+    MINUS removes from Pattern A any results that also match Pattern B.
 """
