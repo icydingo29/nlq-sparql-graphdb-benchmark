@@ -23,11 +23,9 @@ _CAT_LABELS = {
 }
 
 
-# ── helpers ──────────────────────────────────────────────────────────────────
+# ── helpers ───────────────────────────────────────────────────────────────────
 
 def _execute_with_retry(question: str, sparql: str, verbose: bool = True) -> tuple:
-    """Execute SPARQL against GraphDB, retrying up to _MAX_RETRIES times on syntax errors (HTTP 400).
-    Returns (final_sparql, result_set, total_attempts). Raises on non-400 errors."""
     attempt = 0
     while True:
         attempt += 1
@@ -55,10 +53,9 @@ def _execute_with_retry(question: str, sparql: str, verbose: bool = True) -> tup
 def _match_label(llm_vals: set, expected: set) -> str:
     if llm_vals == expected:
         return "EXACT"
-    inter = llm_vals & expected
-    if not inter:
+    if not (llm_vals & expected):
         return "NONE"
-    return f"PARTIAL ({len(inter)}/{len(expected)} correct)"
+    return f"PARTIAL ({len(llm_vals & expected)}/{len(expected)} correct)"
 
 
 def _fmt_set(s: set) -> str:
@@ -68,7 +65,6 @@ def _fmt_set(s: set) -> str:
 
 
 def _reference_vals(q: dict) -> set:
-    """Execute the reference SPARQL and return its result set."""
     try:
         rows = graphdb.query(q["reference_sparql"])
         return graphdb.extract_values(rows)
@@ -77,39 +73,67 @@ def _reference_vals(q: dict) -> set:
 
 
 def _run_question_silent(q: dict) -> tuple:
-    """Execute one question with no output. Returns (label, had_retry)."""
+    """Run one question silently. Returns (label, had_retry, sparql, llm_vals, ref_vals)."""
     sparql, _ = llm.ask(q["question"])
+    ref_vals = _reference_vals(q)
     if sparql is None:
-        return "EXTRACTION FAILED", False
+        return "EXTRACTION FAILED", False, None, set(), ref_vals
     had_retry = False
     try:
-        _, llm_vals, attempts = _execute_with_retry(q["question"], sparql, verbose=False)
+        final_sparql, llm_vals, attempts = _execute_with_retry(q["question"], sparql, verbose=False)
+        sparql = final_sparql
         had_retry = attempts > 1
     except (requests.HTTPError, RuntimeError):
         llm_vals = set()
-    return _match_label(llm_vals, _reference_vals(q)), had_retry
+    label = _match_label(llm_vals, ref_vals)
+    return label, had_retry, sparql, llm_vals, ref_vals
 
 
-def _print_summary(cat_scores: dict, total_exact: int, syntax_retries: int):
-    print(f"\nSUMMARY")
-    print(_THIN)
-    for cat in sorted(cat_scores):
-        right, total = cat_scores[cat]
-        label = _CAT_LABELS.get(cat, f"Cat {cat}")
-        print(f"  Category {cat} ({label}):".ljust(34) + f"{right} / {total}")
-    print(_THIN)
-    all_total = sum(v[1] for v in cat_scores.values())
-    print(f"  {'Total:'.ljust(32)} {total_exact} / {all_total}")
-    print(f"  {'Syntax retries:'.ljust(32)} {syntax_retries}")
+# ── question / category selection ─────────────────────────────────────────────
+
+def _print_question_list():
+    for cat in sorted(_CAT_LABELS):
+        print(f"\n  Category {cat} — {_CAT_LABELS[cat]}:")
+        for q in qbank.QUESTIONS:
+            if q["category"] == cat:
+                print(f"    {q['number']:2}. {q['question']}")
 
 
-# ── run a single test question ────────────────────────────────────────────────
+def _select_question() -> dict | None:
+    _print_question_list()
+    try:
+        n = int(input("\nQuestion number: ").strip())
+    except ValueError:
+        print("Invalid input.")
+        return None
+    matches = [q for q in qbank.QUESTIONS if q["number"] == n]
+    if not matches:
+        print("Invalid question number.")
+        return None
+    return matches[0]
+
+
+def _select_category() -> list | None:
+    print("\nCategories:")
+    for cat in sorted(_CAT_LABELS):
+        count = sum(1 for q in qbank.QUESTIONS if q["category"] == cat)
+        print(f"  {cat}. {_CAT_LABELS[cat]} ({count} questions)")
+    try:
+        cat = int(input("Category number: ").strip())
+    except ValueError:
+        print("Invalid input.")
+        return None
+    subset = [q for q in qbank.QUESTIONS if q["category"] == cat]
+    if not subset:
+        print(f"No questions in category {cat}.")
+        return None
+    return subset
+
+
+# ── run single question (full output) ─────────────────────────────────────────
 
 def run_test(q: dict, brief_on_exact: bool = False) -> tuple:
-    """Run one test question with full output. Returns (match_label, had_syntax_retry).
-    If brief_on_exact=True, prints a single line for EXACT results instead of the full block."""
     cat = q["category"]
-
     sparql, raw = llm.ask(q["question"])
 
     if sparql is None:
@@ -118,7 +142,6 @@ def run_test(q: dict, brief_on_exact: bool = False) -> tuple:
         print(_DIVIDER)
         print("\nLLM response (no SPARQL block found):")
         print(raw)
-        print("\nNo SPARQL query could be extracted.")
         print(f"\nReference SPARQL:\n{q['reference_sparql']}")
         print(f"\nReference Results:\n{_fmt_set(_reference_vals(q))}")
         print(f"\nMatch: EXTRACTION FAILED")
@@ -131,7 +154,7 @@ def run_test(q: dict, brief_on_exact: bool = False) -> tuple:
         had_retry = attempts > 1
     except (requests.HTTPError, RuntimeError) as exc:
         if not brief_on_exact:
-            print(f"\nLLM Results: GraphDB error — {exc}")
+            print(f"\nGraphDB error — {exc}")
         llm_vals = set()
 
     ref_vals = _reference_vals(q)
@@ -145,145 +168,18 @@ def run_test(q: dict, brief_on_exact: bool = False) -> tuple:
     print(f"[Cat {cat}] {q['question']}")
     print(_DIVIDER)
     print(f"\nLLM SPARQL:\n{sparql}")
-    print(f"\nLLM Results:")
-    print(_fmt_set(llm_vals))
+    print(f"\nLLM Results:\n{_fmt_set(llm_vals)}")
     print(f"\nReference SPARQL:\n{q['reference_sparql']}")
-    print(f"\nReference Results:")
-    print(_fmt_set(ref_vals))
+    print(f"\nReference Results:\n{_fmt_set(ref_vals)}")
     print(f"\nMatch: {label}")
     print(_DIVIDER)
     return label, had_retry
 
 
-# ── run-all ──────────────────────────────────────────────────────────────────
-
-def run_all():
-    cat_scores = defaultdict(lambda: [0, 0])
-    total_exact = 0
-    syntax_retries = 0
-
-    for q in qbank.QUESTIONS:
-        label, had_retry = run_test(q)
-        cat = q["category"]
-        cat_scores[cat][1] += 1
-        if label == "EXACT":
-            cat_scores[cat][0] += 1
-            total_exact += 1
-        if had_retry:
-            syntax_retries += 1
-
-    _print_summary(cat_scores, total_exact, syntax_retries)
-
-
-# ── show failures only ────────────────────────────────────────────────────────
-
-def run_failures_only():
-    cat_scores = defaultdict(lambda: [0, 0])
-    total_exact = 0
-    syntax_retries = 0
-
-    for q in qbank.QUESTIONS:
-        label, had_retry = run_test(q, brief_on_exact=True)
-        cat = q["category"]
-        cat_scores[cat][1] += 1
-        if label == "EXACT":
-            cat_scores[cat][0] += 1
-            total_exact += 1
-        if had_retry:
-            syntax_retries += 1
-
-    _print_summary(cat_scores, total_exact, syntax_retries)
-
-
-# ── benchmark (N silent runs) ─────────────────────────────────────────────────
-
-def run_benchmark():
-    try:
-        n = int(input("Number of runs (default 5): ").strip() or "5")
-        if n < 1:
-            raise ValueError
-    except ValueError:
-        print("Invalid number.")
-        return
-
-    n_questions = len(qbank.QUESTIONS)
-    exact_counts = [0] * n_questions
-    total_retries = 0
-
-    for run_idx in range(1, n + 1):
-        print(f"\nRun {run_idx}/{n}...", end=" ", flush=True)
-        run_exact = 0
-        for qi, q in enumerate(qbank.QUESTIONS):
-            label, had_retry = _run_question_silent(q)
-            if label == "EXACT":
-                exact_counts[qi] += 1
-                run_exact += 1
-            if had_retry:
-                total_retries += 1
-        print(f"{run_exact}/{n_questions} exact")
-
-    print(f"\nBENCHMARK RESULTS ({n} runs)")
-    print(_THIN)
-
-    cat_totals = defaultdict(lambda: [0, 0])
-    for qi, q in enumerate(qbank.QUESTIONS):
-        cat = q["category"]
-        cat_totals[cat][0] += exact_counts[qi]
-        cat_totals[cat][1] += n
-
-    for cat in sorted(cat_totals):
-        right_sum, total = cat_totals[cat]
-        label = _CAT_LABELS.get(cat, f"Cat {cat}")
-        print(f"  Category {cat} ({label}):".ljust(34) + f"{right_sum / total * 100:.0f}%  ({right_sum}/{total})")
-
-    print(_THIN)
-    total_right = sum(exact_counts)
-    grand_total = n_questions * n
-    print(f"  {'Overall:'.ljust(32)} {total_right / grand_total * 100:.0f}%  ({total_right}/{grand_total})")
-    print(f"  {'Syntax retries:'.ljust(32)} {total_retries}")
-
-    print(f"\nPer-question exact rate:")
-    for cat in sorted(_CAT_LABELS):
-        print(f"\n  Category {cat} — {_CAT_LABELS[cat]}:")
-        for qi, q in enumerate(qbank.QUESTIONS):
-            if q["category"] != cat:
-                continue
-            pct = exact_counts[qi] / n * 100
-            bar = "█" * exact_counts[qi] + "░" * (n - exact_counts[qi])
-            print(f"    Q{q['number']:2} [{bar}] {pct:3.0f}%  {q['question'][:45]}")
-
-
-# ── run by category ──────────────────────────────────────────────────────────
-
-def run_by_category():
-    print("\nCategories:")
-    for cat in sorted(_CAT_LABELS):
-        count = sum(1 for q in qbank.QUESTIONS if q["category"] == cat)
-        print(f"  {cat}. {_CAT_LABELS[cat]} ({count} questions)")
-    try:
-        cat = int(input("Category number: ").strip())
-    except ValueError:
-        print("Invalid input.")
-        return
-    subset = [q for q in qbank.QUESTIONS if q["category"] == cat]
-    if not subset:
-        print(f"No questions in category {cat}.")
-        return
-
-    cat_scores = defaultdict(lambda: [0, 0])
-    total_exact = 0
-    syntax_retries = 0
-
-    for q in subset:
-        label, had_retry = run_test(q)
-        cat_scores[cat][1] += 1
-        if label == "EXACT":
-            cat_scores[cat][0] += 1
-            total_exact += 1
-        if had_retry:
-            syntax_retries += 1
-
-    _print_summary(cat_scores, total_exact, syntax_retries)
+def run_single():
+    q = _select_question()
+    if q:
+        run_test(q)
 
 
 # ── free-form ─────────────────────────────────────────────────────────────────
@@ -293,23 +189,160 @@ def run_freeform():
     if not question:
         print("No question entered.")
         return
-
     sparql, raw = llm.ask(question)
-
     if sparql is None:
         print("\nLLM response (no SPARQL block found):")
         print(raw)
-        print("\nNo SPARQL query could be extracted.")
         return
-
     print(f"\nLLM SPARQL:\n{sparql}")
-
     try:
         _, vals, _ = _execute_with_retry(question, sparql)
-        print(f"\nResults:")
-        print(_fmt_set(vals))
+        print(f"\nResults:\n{_fmt_set(vals)}")
     except (requests.HTTPError, RuntimeError) as exc:
-        print(f"\nResults: GraphDB error — {exc}")
+        print(f"\nGraphDB error — {exc}")
+
+
+# ── benchmark ─────────────────────────────────────────────────────────────────
+
+def _print_benchmark_stats(questions: list, exact_counts: list, n: int, total_retries: int):
+    print(f"\nBENCHMARK RESULTS ({n} runs)")
+    print(_THIN)
+
+    cat_totals = defaultdict(lambda: [0, 0])
+    for qi, q in enumerate(questions):
+        cat_totals[q["category"]][0] += exact_counts[qi]
+        cat_totals[q["category"]][1] += n
+
+    for cat in sorted(cat_totals):
+        right, total = cat_totals[cat]
+        print(f"  Category {cat} ({_CAT_LABELS.get(cat, f'Cat {cat}')}):".ljust(34)
+              + f"{right / total * 100:.0f}%  ({right}/{total})")
+
+    print(_THIN)
+    total_right = sum(exact_counts)
+    grand_total = len(questions) * n
+    print(f"  {'Overall:'.ljust(32)} {total_right / grand_total * 100:.0f}%  ({total_right}/{grand_total})")
+    print(f"  {'Syntax retries:'.ljust(32)} {total_retries}")
+
+    print(f"\nPer-question exact rate:")
+    for cat in sorted({q["category"] for q in questions}):
+        print(f"\n  Category {cat} — {_CAT_LABELS[cat]}:")
+        for qi, q in enumerate(questions):
+            if q["category"] != cat:
+                continue
+            pct = exact_counts[qi] / n * 100
+            bar = "█" * exact_counts[qi] + "░" * (n - exact_counts[qi])
+            print(f"    Q{q['number']:2} [{bar}] {pct:3.0f}%  {q['question'][:45]}")
+
+
+def run_benchmark():
+    # ── scope ────────────────────────────────────────────────────────────────
+    print("\nBenchmark scope:")
+    print("  S  Single question")
+    print("  C  Category")
+    print("  A  All questions")
+    scope = input("Scope [S/C/A]: ").strip().upper()
+
+    if scope == "S":
+        q = _select_question()
+        if q is None:
+            return
+        questions = [q]
+    elif scope == "C":
+        questions = _select_category()
+        if questions is None:
+            return
+    elif scope == "A":
+        questions = list(qbank.QUESTIONS)
+    else:
+        print("Invalid scope.")
+        return
+
+    # ── runs ─────────────────────────────────────────────────────────────────
+    try:
+        n = int(input("Runs (default 10): ").strip() or "10")
+        if n < 1:
+            raise ValueError
+    except ValueError:
+        print("Invalid number.")
+        return
+
+    # ── output mode ──────────────────────────────────────────────────────────
+    print("Output:  P  progress only (default)")
+    print("         F  show last failing SPARQL per question after stats")
+    print("         V  one result line per question per run")
+    out = input("Output [P/F/V]: ").strip().upper() or "P"
+    if out not in ("P", "F", "V"):
+        out = "P"
+
+    # ── run ───────────────────────────────────────────────────────────────────
+    n_questions = len(questions)
+    exact_counts = [0] * n_questions
+    total_retries = 0
+    # qi → {sparql_str: [count, llm_vals, ref_vals]}
+    failure_patterns: dict[int, dict] = {}
+
+    for run_idx in range(1, n + 1):
+        if out == "V":
+            print(f"\nRun {run_idx}/{n}")
+        else:
+            print(f"\nRun {run_idx}/{n}...", end=" ", flush=True)
+
+        run_exact = 0
+        for qi, q in enumerate(questions):
+            label, had_retry, sparql, llm_vals, ref_vals = _run_question_silent(q)
+
+            if label == "EXACT":
+                exact_counts[qi] += 1
+                run_exact += 1
+            else:
+                key = sparql if sparql is not None else "(extraction failed)"
+                entry = failure_patterns.setdefault(qi, {})
+                if key not in entry:
+                    entry[key] = [0, llm_vals, ref_vals]
+                entry[key][0] += 1
+
+            if had_retry:
+                total_retries += 1
+
+            if out == "V":
+                tag = "EXACT" if label == "EXACT" else label
+                print(f"  Q{q['number']:2}  {tag:<34}  {q['question'][:38]}")
+
+        if out == "V":
+            print(f"  → {run_exact}/{n_questions} exact")
+        else:
+            print(f"{run_exact}/{n_questions} exact")
+
+    # ── stats ─────────────────────────────────────────────────────────────────
+    _print_benchmark_stats(questions, exact_counts, n, total_retries)
+
+    # ── failure details (F mode) ──────────────────────────────────────────────
+    if out == "F" and failure_patterns:
+        print(f"\n{_THIN}")
+        print("FAILURE PATTERNS PER QUESTION")
+        for qi, q in enumerate(questions):
+            if qi not in failure_patterns:
+                continue
+            rate = exact_counts[qi] / n * 100
+            n_fails = n - exact_counts[qi]
+            patterns = sorted(failure_patterns[qi].items(), key=lambda x: x[1][0], reverse=True)
+            ref_vals = patterns[0][1][2]
+
+            print(f"\n{_DIVIDER}")
+            print(f"[Cat {q['category']}] Q{q['number']} — {q['question']}")
+            print(f"  {rate:.0f}% exact  |  {n_fails} failure(s)  |  {len(patterns)} unique pattern(s)")
+            print(_DIVIDER)
+
+            for i, (sparql, (count, llm_vals, _)) in enumerate(patterns, 1):
+                print(f"\n  Pattern {i}  ×{count}:")
+                print(f"\n  LLM SPARQL:")
+                for line in sparql.splitlines():
+                    print(f"    {line}")
+                print(f"\n  LLM Results:\n{_fmt_set(llm_vals)}")
+
+            print(f"\n  Reference Results:\n{_fmt_set(ref_vals)}")
+            print(_DIVIDER)
 
 
 # ── menu ──────────────────────────────────────────────────────────────────────
@@ -317,14 +350,10 @@ def run_freeform():
 def print_menu():
     print("\nGeographic Ontology NLQ Tester")
     print("=" * 34)
-    for q in qbank.QUESTIONS:
-        print(f"  {q['number']:2}. [Cat {q['category']}] {q['question']}")
-    print(f"   A.  Run all (full output)")
-    print(f"   S.  Run all (failures only)")
-    print(f"   B.  Benchmark (N runs, averages)")
-    print(f"   C.  Run by category")
-    print(f"   F.  Free-form question")
-    print(f"   Q.  Quit")
+    print("  S  Single question")
+    print("  F  Free-form question")
+    print("  B  Benchmark")
+    print("  Q  Quit")
     print()
 
 
@@ -339,25 +368,14 @@ def main():
         if choice == "Q":
             print("Goodbye.")
             sys.exit(0)
-        elif choice == "A":
-            run_all()
         elif choice == "S":
-            run_failures_only()
-        elif choice == "B":
-            run_benchmark()
-        elif choice == "C":
-            run_by_category()
+            run_single()
         elif choice == "F":
             run_freeform()
+        elif choice == "B":
+            run_benchmark()
         else:
-            try:
-                idx = int(choice) - 1
-                if 0 <= idx < len(qbank.QUESTIONS):
-                    run_test(qbank.QUESTIONS[idx])
-                else:
-                    print("Invalid selection.")
-            except ValueError:
-                print("Invalid selection.")
+            print("Invalid selection.")
 
 
 if __name__ == "__main__":
