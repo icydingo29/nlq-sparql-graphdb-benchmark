@@ -481,4 +481,4 @@ try:
 except Exception as e:
     print(f"Error with the reasoner: {e}")
 
-onto.save(file="3MI3400841_3MI3400791_GeoOntology.owl", format="rdfxml")
+onto.save(file="GeoOntology.owl", format="rdfxml")
