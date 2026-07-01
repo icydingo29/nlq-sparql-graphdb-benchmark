@@ -1,4 +1,4 @@
-# Derived by reading data/3MI3400841_3MI3400791_GeoOntology.owl directly.
+# Derived by reading data/GeoOntology.owl directly.
 SCHEMA_SUMMARY = """You are a SPARQL query generator for a geographic OWL ontology loaded in GraphDB.
 Return ONLY a SPARQL SELECT query inside a ```sparql ... ``` code block. No explanation, no prose.
 

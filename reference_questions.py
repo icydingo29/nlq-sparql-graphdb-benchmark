@@ -1,4 +1,4 @@
-# Reference test questions derived from data/3MI3400841_3MI3400791_GeoOntology.owl.
+# Reference test questions derived from data/GeoOntology.owl.
 # reference_sparql is executed live against GraphDB at test time — no hardcoded expected results.
 
 _PFX = "PREFIX geo: <http://example.org/geo_ontology_final.owl#>\n"

@@ -30,7 +30,7 @@ python --version
    - Leave all other settings at their defaults, then click **Create**.
 5. Import the OWL file:
    - Import → RDF → Upload local files
-   - Select `data/3MI3400841_3MI3400791_GeoOntology.owl`
+   - Select `data/GeoOntology.owl`
    - Click **Import** and confirm with the default settings (imports into the default graph).
 6. Verify reasoning is active: after import, the Explore tab should show instances of `geo:Megacity`, `geo:CapitalCity`, `geo:RepublicState`, etc.
 
@@ -129,7 +129,7 @@ No other file needs to change.
 | `graphdb.py` | POSTs SPARQL to GraphDB, parses SPARQL 1.1 JSON results, strips the geo namespace from URIs |
 | `questions.py` | 22 reference test questions across 7 categories; reference SPARQL is executed live against GraphDB at test time — no hardcoded expected results |
 | `main.py` | Interactive CLI — menu, single-question runner, benchmark mode, free-form mode |
-| `data/` | OWL ontology file (`3MI3400841_3MI3400791_GeoOntology.owl`) |
+| `data/` | OWL ontology file (`GeoOntology.owl`) |
 
 ---
 
