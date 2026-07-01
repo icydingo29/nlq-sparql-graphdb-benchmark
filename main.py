@@ -1,8 +1,14 @@
 import sys
+import argparse
 from urllib.parse import urlparse
 
 import requests
 import config
+
+_MODEL_SHORTHANDS = {
+    "3b": "qwen2.5-coder:3b",
+    "7b": "qwen2.5-coder:7b",
+}
 from benchmark import run_benchmark
 from rich.panel import Panel
 from runner import console, run_single, run_freeform
@@ -57,4 +63,14 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Geographic Ontology NLQ Tester")
+    parser.add_argument(
+        "--model",
+        default=None,
+        metavar="NAME",
+        help="Model to use (e.g. 3b, 7b, or a full Ollama model name). Defaults to config.py.",
+    )
+    args = parser.parse_args()
+    if args.model is not None:
+        config.OLLAMA_MODEL = _MODEL_SHORTHANDS.get(args.model, args.model)
     main()
