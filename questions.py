@@ -244,3 +244,13 @@ SELECT ?country WHERE {
 }""",
     },
 ]
+
+CAT_LABELS = {
+    1: "Direct Retrieval",
+    2: "Transitivity",
+    3: "Numeric Filter",
+    4: "Defined Class",
+    5: "Aggregation",
+    6: "Compositional",
+    7: "Reasoning Required",
+}
