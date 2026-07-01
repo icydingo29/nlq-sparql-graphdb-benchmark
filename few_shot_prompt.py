@@ -1,4 +1,4 @@
-import schema
+import ontology_schema as schema
 
 _FEW_SHOT = [
     # Example 1 — direct single-property lookup (covers Cat 1 & Cat 4 patterns)

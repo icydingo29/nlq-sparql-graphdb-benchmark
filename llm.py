@@ -1,7 +1,7 @@
 import re
 import requests
 import config
-import prompt
+import few_shot_prompt as prompt
 
 
 def ask(question: str) -> tuple:
