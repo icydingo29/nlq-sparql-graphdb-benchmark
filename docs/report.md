@@ -566,6 +566,8 @@ Two questions were added to complete the category set: Q19 (MINUS, Cat 6) and Q2
 
 Syntax retries: 2 (3B), 1 (7B).
 
+![Benchmark accuracy by category](benchmark_by_category.png)
+
 ### 8.4 Per-Question Breakdown
 
 | Q | 3b rate | 7b rate | Question |
@@ -592,6 +594,8 @@ Syntax retries: 2 (3B), 1 (7B).
 | Q20 | 70% | **100%** | Which volcanoes are not located in Europe? |
 | Q21 | **0%** | 100% | Which countries are in North America? |
 | Q22 | **20%** | 60% | Which countries are republics? |
+
+![Per-question accuracy breakdown](benchmark_per_question.png)
 
 ### 8.5 Model Comparison Analysis
 

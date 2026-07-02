@@ -2,7 +2,7 @@
 
 A research project exploring whether a small local LLM can reliably translate natural language questions into SPARQL queries over an OWL2 ontology. Questions are answered by querying a geographic knowledge graph in GraphDB; results are scored against reference queries run live against the triplestore.
 
-Built as part of a Master's course in Knowledge Representation at Sofia University.
+Built as part of a Master's research project at Sofia University.
 
 > A detailed research report covering methodology, ontology design, and full benchmark analysis is available in [report.md](docs/report.md).
 
@@ -33,7 +33,7 @@ Natural language question
     Result set
          │
          ▼
-  Score vs. reference ── EXACT / PARTIAL / NONE
+  Score vs. reference ── EXACT / PARTIAL / NONE / EXTRACTION FAILED
 ```
 
 The reference answer for each question is a hand-written SPARQL query executed live against GraphDB at test time — there are no hardcoded expected values.
@@ -46,27 +46,29 @@ The reference answer for each question is a hand-written SPARQL query executed l
 
 | Cat | Category | `qwen2.5-coder:3b` | `qwen2.5-coder:7b` |
 |-----|----------|:------------------:|:------------------:|
-| 1 | Direct Retrieval | **100%** | 97% |
+| 1 | Direct Retrieval | 97% | **100%** |
 | 2 | Transitivity | **100%** | **100%** |
 | 3 | Numeric Filter | **100%** | 80% |
-| 4 | Defined Class | 73% | **90%** |
-| 5 | Aggregation | 68% | **98%** |
-| 6 | Compositional | 57% | **100%** |
-| 7 | Reasoning Required | 57% | **83%** |
-| | **Overall** | **79%** (173/220) | **93%** (204/220) |
+| 4 | Defined Class | 80% | **87%** |
+| 5 | Aggregation | 78% | **100%** |
+| 6 | Compositional | 90% | **93%** |
+| 7 | Reasoning Required | 30% | **87%** |
+| | **Overall** | 82% (180/220) | **93%** (204/220) |
 
-The 3B model outperforms the 7B on simple retrieval and numeric filters; the 7B model is substantially better on aggregation, compositional queries, and reasoning.
+The 3B model outperforms the 7B only on numeric filters (Cat 3: 100% vs 80%); both tie on transitivity. The 7B model leads substantially on aggregation, compositional queries, and reasoning.
+
+![Benchmark accuracy by category](docs/benchmark_by_category.png)
 
 ### Known Failure Modes
 
 | Question | 3B | 7B | Root cause |
 |----------|:--:|:--:|------------|
-| Q8 — cities pop > 1M | 100% | 40% | 7B regression: uses `geo:population > N` as a property triple instead of `FILTER` |
-| Q12 — Sunni Islamic countries | 40% | 70% | Both models attempt `a geo:SunniIslamicCountry` — class has no materialised instances under OWL2-RL |
-| Q14 — MAX peak height | 60% | 100% | 3B wraps height in `OPTIONAL` → `MAX` over unbound variable → no results |
-| Q19 — capital cities not megacities | 30% | 100% | 3B abandons `MINUS`; some runs generate completely unrelated queries |
-| Q21 — countries in North America | 0% | 100% | 3B consistently abbreviates `North_America` → `N_America` (9/10 runs) |
-| Q22 — republics | 70% | 50% | 3B uses `RepublicState` as a property value; 7B produces structural errors (pipe syntax, `AND` conjunction) |
+| Q7 — peaks > 5000m | 100% | **50%** | 7B regression: drops `FILTER` and places the comparison directly in the triple pattern |
+| Q12 — Sunni Islamic countries | 70% | 70% | Both models use `a geo:SunniIslamicCountry` — OWL2-RL does not materialise instances of this class |
+| Q14 — MAX peak height | 70% | 100% | 3B wraps height in `OPTIONAL` → `MAX` over unbound variable → no results |
+| Q19 — capital cities not megacities | 70% | 90% | 3B abandons `MINUS` in ~30% of runs |
+| Q21 — countries in North America | **0%** | 100% | 3B consistently abbreviates `North_America` → `N_America` despite explicit schema rules |
+| Q22 — republics | **20%** | 60% | 3B uses `RepublicState` as a property value; 7B produces structural errors (pipe syntax, misplaced `UNION`) |
 
 ---
 
@@ -82,7 +84,7 @@ python --version
 
 ### 2. GraphDB Free
 
-1. Download and install [GraphDB Free](https://www.ontotext.com/products/graphdb/graphdb-free/).
+1. Download and install [GraphDB Free](https://graphwise.ai/graphdb/).
 2. Start GraphDB — it must be listening on **port 7200**.
 3. Open the Workbench at `http://localhost:7200`.
 4. Create a repository:
@@ -147,7 +149,7 @@ The interactive menu offers four options:
 |-----|--------|
 | `S` | Run a single reference question with full output (LLM SPARQL, results, reference, match label) |
 | `F` | Ask a free-form natural language question and see the SPARQL and results |
-| `B` | Benchmark mode — runs questions N times silently, reports per-category and overall accuracy |
+| `B` | Benchmark mode — runs questions N times, reports per-category and overall accuracy |
 | `Q` | Quit |
 
 ### Benchmark mode
@@ -236,11 +238,12 @@ On an HTTP 400 response from GraphDB (malformed SPARQL), the app automatically a
 
 ## Notes
 
+- This project runs on [GraphDB Free](https://graphwise.ai/graphdb/) — GraphWise's freely available triplestore edition, which has no restrictions on ontology size or query count relevant to this project.
 - The ontology is a deliberately simplified model built for research purposes — it does not aim to be a complete geographic database. Results reflect only the data included in `GeoOntology.owl`. For example, only three volcanoes are modelled (Etna, Vesuvius, Mount Fuji), so a query for "volcanoes not in Europe" returns only Mount Fuji — not because it is the only such volcano in the world, but because it is the only one in the ontology.
 - Benchmark results vary between runs due to LLM non-determinism. Use benchmark mode with at least 10 runs for reliable accuracy statistics.
 - `is_located_in` is transitive — OWL2-RL materialises the full closure, so a query for `geo:is_located_in geo:Asia` correctly returns entities in countries that are themselves in Asia.
-- Classes like `EuropeanCountry` and `LandlockedCountry` are defined in the ontology but have **no materialised instances** under OWL2-RL. Always use `geo:is_located_in geo:Europe` for location queries.
-- `SunniIslamicCountry` similarly has no materialised instances; queries for it use `FILTER EXISTS { ?c geo:has_main_religion geo:Islam_Sunni }` instead.
+- `EuropeanCountry` and similar location-derived classes are defined in the ontology but have **no materialised instances** under OWL2-RL — the reasoner cannot handle `someValuesFrom` with a named individual filler. Always use `geo:is_located_in geo:Europe` for location queries. `SunniIslamicCountry` fails for the same reason; queries for it use `FILTER EXISTS { ?c geo:has_main_religion geo:Islam_Sunni }` instead.
+- `LandlockedCountry` has no materialised instances under **any** OWL reasoner — its definition requires the absence of a Sea or Ocean, which cannot be concluded under the open-world assumption.
 
 ---
 
