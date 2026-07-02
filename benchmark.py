@@ -72,7 +72,7 @@ def _print_benchmark_stats(questions: list, exact_counts: list, n: int, total_re
 def run_benchmark():
     # ── scope ────────────────────────────────────────────────────────────────
     console.print("\n[bold]Benchmark scope:[/bold]")
-    console.print("  [bold cyan]S[/bold cyan]  Single question")
+    console.print("  [bold cyan]S[/bold cyan]  Single reference question")
     console.print("  [bold cyan]C[/bold cyan]  Category")
     console.print("  [bold cyan]A[/bold cyan]  All questions")
     scope = input("Scope [S/C/A]: ").strip().upper()

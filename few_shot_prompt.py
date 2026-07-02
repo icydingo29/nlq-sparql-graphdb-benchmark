@@ -33,15 +33,16 @@ _FEW_SHOT = [
             "}"
         ),
     },
-    # Example 4 — combined numeric FILTER with && (covers Cat 3 pattern)
+    # Example 4 — numeric FILTER combined with other triple patterns (covers Cat 3 pattern)
     {
-        "question": "Which lakes have a depth greater than 100 meters and less than 5000 meters?",
+        "question": "Which cities in Asia have a population greater than 5 million?",
         "sparql": (
             "PREFIX geo: <http://example.org/geo_ontology_final.owl#>\n"
-            "SELECT ?lake WHERE {\n"
-            "  ?lake a geo:Lake ;\n"
-            "        geo:depth ?d .\n"
-            "  FILTER(?d > 100 && ?d < 5000)\n"
+            "SELECT ?city WHERE {\n"
+            "  ?city a geo:City ;\n"
+            "        geo:is_located_in geo:Asia ;\n"
+            "        geo:population ?pop .\n"
+            "  FILTER(?pop > 5000000)\n"
             "}"
         ),
     },

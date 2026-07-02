@@ -253,7 +253,7 @@ with onto:
     vasil_terziev = Person("Vasil_Terziev", first_name="Vasil", last_name="Terziev", age=46)
     sofia.has_mayor = [vasil_terziev]
 
-    france = Country("France", is_located_in=[europe], population=67000000, has_form_of_government=[republic])
+    france = Country("France", is_located_in=[europe], population=67000000, has_form_of_government=[republic], has_main_religion=[catholicism])
     paris = City("Paris", is_located_in=[france], is_capital=True, population=2100000)
     emmanuel_macron = Person("Emmanuel_Macron", first_name="Emmanuel", last_name="Macron", age=46)
     france.has_head_of_state = [emmanuel_macron]
@@ -269,12 +269,12 @@ with onto:
     donald_trump = Person("Donald_Trump", first_name="Donald", last_name="Trump", age=81)
     usa.has_head_of_state = [donald_trump]
 
-    germany = Country("Germany", is_located_in=[europe], population=83000000, has_form_of_government=[fed_republic])
+    germany = Country("Germany", is_located_in=[europe], population=83000000, has_form_of_government=[fed_republic], has_main_religion=[protestantism])
     berlin = City("Berlin", is_located_in=[germany], is_capital=True, population=3700000)
     frank_walter = Person("Frank_Walter_Steinmeier", first_name="Frank-Walter", last_name="Steinmeier", age=70)
     germany.has_head_of_state = [frank_walter]
 
-    united_kingdom = Country("United_Kingdom", is_located_in=[europe], population=67000000, has_form_of_government=[const_monarchy])
+    united_kingdom = Country("United_Kingdom", is_located_in=[europe], population=67000000, has_form_of_government=[const_monarchy], has_main_religion=[protestantism])
     london = City("London", is_located_in=[united_kingdom], is_capital=True, population=8900000)
     king_charles = Person("King_Charles_III", first_name="Charles", last_name="Windsor", age=75)
     united_kingdom.has_head_of_state = [king_charles]
@@ -377,8 +377,9 @@ with onto:
     sherwood = Forest("Sherwood_Forest", is_located_in=[europe], is_tropical=False)
     vitosha_forest = Forest("Vitosha_Forest", is_located_in=[bulgaria])
 
+    italy = Country("Italy", is_located_in=[europe], population=60000000, has_form_of_government=[republic], has_main_religion=[catholicism])
     etna = Volcano("Etna", is_located_in=[sicily], height=3357.0)
-    vesuvius = Volcano("Vesuvius", is_located_in=[italy := Country("Italy", is_located_in=[europe])], height=1281.0)
+    vesuvius = Volcano("Vesuvius", is_located_in=[italy], height=1281.0)
     fuji = Volcano("Mount_Fuji", is_located_in=[japan], height=3776.0)
 
     rila_monastery = Monastery("Rila_Monastery", is_located_in=[rila], construction_date=927)

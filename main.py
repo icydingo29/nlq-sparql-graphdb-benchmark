@@ -32,7 +32,7 @@ def _check_services():
 
 def print_menu():
     menu = (
-        "  [bold cyan]S[/bold cyan]  Single question\n"
+        "  [bold cyan]S[/bold cyan]  Single reference question\n"
         "  [bold cyan]F[/bold cyan]  Free-form question\n"
         "  [bold cyan]B[/bold cyan]  Benchmark\n"
         "  [bold cyan]Q[/bold cyan]  Quit"

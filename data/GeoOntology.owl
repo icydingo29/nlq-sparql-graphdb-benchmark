@@ -1094,6 +1094,7 @@
   <is_located_in rdf:resource="#Europe"/>
   <has_form_of_government rdf:resource="#Parliamentary_Republic"/>
   <has_head_of_state rdf:resource="#Emmanuel_Macron"/>
+  <has_main_religion rdf:resource="#Catholicism"/>
   <rdf:type rdf:resource="#RepublicState"/>
   <contains rdf:resource="#Notre_Dame_de_Paris"/>
   <contains rdf:resource="#Eiffel_Tower"/>
@@ -1179,6 +1180,7 @@
   <is_located_in rdf:resource="#Europe"/>
   <has_form_of_government rdf:resource="#Federal_Republic"/>
   <has_head_of_state rdf:resource="#Frank_Walter_Steinmeier"/>
+  <has_main_religion rdf:resource="#Protestantism"/>
   <rdf:type rdf:resource="#RepublicState"/>
   <population rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">83000000</population>
 </owl:NamedIndividual>
@@ -1204,6 +1206,7 @@
   <is_located_in rdf:resource="#Europe"/>
   <has_form_of_government rdf:resource="#Constitutional_Monarchy"/>
   <has_head_of_state rdf:resource="#King_Charles_III"/>
+  <has_main_religion rdf:resource="#Protestantism"/>
   <population rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">67000000</population>
 </owl:NamedIndividual>
 
@@ -1773,8 +1776,12 @@
 
 <owl:NamedIndividual rdf:about="#Italy">
   <rdf:type rdf:resource="#Country"/>
+  <rdf:type rdf:resource="#RepublicState"/>
   <is_located_in rdf:resource="#Europe"/>
+  <has_form_of_government rdf:resource="#Parliamentary_Republic"/>
+  <has_main_religion rdf:resource="#Catholicism"/>
   <contains rdf:resource="#Colosseum"/>
+  <population rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">60000000</population>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#Vesuvius">
