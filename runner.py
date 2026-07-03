@@ -31,6 +31,8 @@ def _execute_with_retry(question: str, sparql: str, verbose: bool = True) -> tup
                 if new_sparql is None:
                     if verbose:
                         console.print("  [yellow][[LLM returned no SPARQL on retry — giving up]][/yellow]")
+                    # NOTE: attempt is still 1 here, so the caller's `had_retry = attempts > 1`
+                    # evaluates to False and total_retries misses this round-trip.
                     return sparql, set(), attempt
                 sparql = new_sparql
                 if verbose:
@@ -42,9 +44,27 @@ def _execute_with_retry(question: str, sparql: str, verbose: bool = True) -> tup
             raise RuntimeError(f"GraphDB request failed — {exc}")
 
 
+def _as_number(s: str):
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return None
+
+
 def _match_label(llm_vals: set, expected: set) -> str:
     if llm_vals == expected:
         return "EXACT"
+    # numeric aggregation: tolerate float/precision differences (e.g. AVG rounding)
+    # only fires when both sides are a single value — keeps URI sets on the exact path
+    if len(llm_vals) == 1 and len(expected) == 1:
+        a = _as_number(next(iter(llm_vals)))
+        b = _as_number(next(iter(expected)))
+        if a is not None and b is not None:
+            # relative tolerance of 1e-6: passes AVG rounding (~1e-8 diff),
+            # catches COUNT off-by-one (~0.08 diff)
+            if abs(a - b) <= 1e-6 * max(abs(a), abs(b), 1.0):
+                return "EXACT"
+            return "NONE"
     if not (llm_vals & expected):
         return "NONE"
     return f"PARTIAL ({len(llm_vals & expected)}/{len(expected)} correct)"
@@ -65,11 +85,8 @@ def fmt_set(s: set) -> str:
 
 
 def _reference_vals(q: dict) -> set:
-    try:
-        rows = graphdb.query(q["reference_sparql"])
-        return graphdb.extract_values(rows)
-    except (requests.exceptions.RequestException, RuntimeError):
-        return set()
+    rows = graphdb.query(q["reference_sparql"])
+    return graphdb.extract_values(rows)
 
 
 def run_question_silent(q: dict) -> tuple:
@@ -78,7 +95,10 @@ def run_question_silent(q: dict) -> tuple:
         sparql, _ = llm.ask(q["question"])
     except requests.ConnectionError:
         return "CONNECTION ERROR", False, None, set(), set()
-    ref_vals = _reference_vals(q)
+    try:
+        ref_vals = _reference_vals(q)
+    except (requests.exceptions.RequestException, RuntimeError):
+        return "REFERENCE ERROR", False, None, set(), set()
     if sparql is None:
         return "EXTRACTION FAILED", False, None, set(), ref_vals
     had_retry = False
@@ -149,7 +169,11 @@ def run_test(q: dict, brief_on_exact: bool = False) -> tuple:
         console.print(raw, highlight=False)
         console.print("\n[bold]Reference SPARQL:[/bold]")
         console.print(Syntax(q["reference_sparql"], "sparql", theme="monokai"))
-        console.print(f"\n[bold]Reference Results:[/bold]\n{fmt_set(_reference_vals(q))}", highlight=False)
+        try:
+            ref_str = fmt_set(_reference_vals(q))
+        except (requests.exceptions.RequestException, RuntimeError):
+            ref_str = "(GraphDB unreachable)"
+        console.print(f"\n[bold]Reference Results:[/bold]\n{ref_str}", highlight=False)
         console.print("\n[bold red]Match: EXTRACTION FAILED[/bold red]")
         console.rule()
         return "EXTRACTION FAILED", False
@@ -163,7 +187,11 @@ def run_test(q: dict, brief_on_exact: bool = False) -> tuple:
             console.print(f"\n[red]GraphDB error — {exc}[/red]")
         llm_vals = set()
 
-    ref_vals = _reference_vals(q)
+    try:
+        ref_vals = _reference_vals(q)
+    except (requests.exceptions.RequestException, RuntimeError):
+        console.print("[red]Cannot reach GraphDB — is it running on port 7200?[/red]")
+        return "CONNECTION ERROR", had_retry
     label = _match_label(llm_vals, ref_vals)
     style = _match_style(label)
 

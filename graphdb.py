@@ -31,6 +31,9 @@ def query(sparql: str) -> list:
 
 def extract_values(rows: list) -> set:
     """Flatten all row values into a set, stripping the geo namespace from URIs."""
+    # NOTE: flattens all SELECT vars into one set, so row-level pairing is not
+    # checked. Q18 (?country ?religion) is therefore slightly over-credited: a
+    # correct-members / wrong-pairing result can score EXACT. Accepted (1/22).
     ns = config.GEO_NAMESPACE
     result = set()
     for row in rows:

@@ -1,9 +1,12 @@
 from collections import defaultdict
 
+import requests
 from rich.syntax import Syntax
 from rich.table import Table
 from rich import box
 
+import config
+import graphdb
 import reference_questions as qbank
 from runner import console, fmt_set, run_question_silent, select_question, select_category
 
@@ -69,7 +72,22 @@ def _print_benchmark_stats(questions: list, exact_counts: list, n: int, total_re
             )
 
 
+_GRAPHDB_DOWN_MSG = (
+    f"GraphDB is unreachable at {config.GRAPHDB_ENDPOINT}.\n"
+    f"Start GraphDB and confirm the repository name in config.py, then run the benchmark again.\n"
+    f"The benchmark lets you choose scope (single question / category / all 22), "
+    f"number of runs, and output detail level (progress / failure patterns / verbose)."
+)
+
+
 def run_benchmark():
+    # ── preflight ────────────────────────────────────────────────────────────
+    try:
+        graphdb.query("SELECT ?x WHERE { ?x ?p ?o } LIMIT 1")
+    except (requests.exceptions.RequestException, RuntimeError):
+        console.print(f"[red]{_GRAPHDB_DOWN_MSG}[/red]")
+        return
+
     # ── scope ────────────────────────────────────────────────────────────────
     console.print("\n[bold]Benchmark scope:[/bold]")
     console.print("  [bold cyan]S[/bold cyan]  Single reference question")
@@ -124,6 +142,10 @@ def run_benchmark():
         run_exact = 0
         for qi, q in enumerate(questions):
             label, had_retry, sparql, llm_vals, ref_vals = run_question_silent(q)
+
+            if label == "REFERENCE ERROR":
+                console.print(f"\n[red]{_GRAPHDB_DOWN_MSG}[/red]")
+                return
 
             if label == "EXACT":
                 exact_counts[qi] += 1
