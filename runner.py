@@ -182,10 +182,13 @@ def run_test(q: dict, brief_on_exact: bool = False) -> tuple:
     try:
         _, llm_vals, attempts = _execute_with_retry(q["question"], sparql, verbose=not brief_on_exact)
         had_retry = attempts > 1
-    except (requests.HTTPError, RuntimeError) as exc:
+    except requests.HTTPError as exc:
         if not brief_on_exact:
             console.print(f"\n[red]GraphDB error — {exc}[/red]")
         llm_vals = set()
+    except RuntimeError as exc:
+        console.print(f"[red]{exc}[/red]")
+        return "CONNECTION ERROR", had_retry
 
     try:
         ref_vals = _reference_vals(q)
@@ -238,5 +241,7 @@ def run_freeform():
     try:
         _, vals, _ = _execute_with_retry(question, sparql)
         console.print(f"\n[bold]Results:[/bold]\n{fmt_set(vals)}", highlight=False)
-    except (requests.HTTPError, RuntimeError) as exc:
+    except requests.HTTPError as exc:
         console.print(f"\n[red]GraphDB error — {exc}[/red]")
+    except RuntimeError as exc:
+        console.print(f"\n[red]{exc}[/red]")
